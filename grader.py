@@ -700,7 +700,7 @@ def update(mode="", input_file="", flags={}):
                 retry = 1
             continue
         if flags["store_source"]:
-            result_file = open(time.strftime("Result_" + os.path.splitext(os.path.basename(input_file))[0] + "_%Y%m%d%H%M%s.html", time.localtime()), "w")
+            result_file = open(time.strftime("Result_" + os.path.splitext(os.path.basename(input_file))[0] + "_%Y%m%d%H%M%S.html", time.localtime()), "w")
             result_file.write(str(result_html))
             result_file.close()
         result_table = BeautifulSoup(str(result_table_html))
