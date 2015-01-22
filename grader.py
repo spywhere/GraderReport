@@ -233,33 +233,15 @@ def update(mode="", input_file="", flags={}):
                 continue
             print("==== Merger ====")
             no_col = raw_input("No Columns: ")
-            if no_col == "":
-                return
             no_row = raw_input("No Rows: ")
-            if no_row == "":
-                return
             keep_col = raw_input("Keep Columns: ")
-            if keep_col == "":
-                return
             keep_row = raw_input("Keep Rows: ")
-            if keep_row == "":
-                return
             print("==== Normalizer ====")
             inc_contest = raw_input("Include Contest: ")
-            if inc_contest == "":
-                return
             cal_col = raw_input("Calculate Columns: ")
-            if cal_col == "":
-                return
             w_user = raw_input("Withdrawn Users: ")
-            if w_user == "":
-                return
             ex_user = raw_input("Exclude Users: ")
-            if ex_user == "":
-                return
             ex_col = raw_input("Include Columns: ")
-            if ex_col == "":
-                return
             print("==== Grader ====")
             print("Grader User: "+graderu)
             print("Grader Password: "+("*"*len(graderp)))
@@ -816,7 +798,7 @@ def update(mode="", input_file="", flags={}):
         for row in normalized_result_list:
             result_list.append(row.split("\t"))
         if flags["n"] < 0 or flags["n"] > 0:
-            result_list.append(["Next Update", time.strftime("%d/%m/%Y %H:%M", time.localtime() + flags["l"])])
+            result_list.append(["Next Update", time.strftime("%d/%m/%Y %H:%M", time.localtime(time.mktime(time.localtime()) + flags["l"]))])
         else:
             result_list.append([None, None])
         if not flags["silent"]:
@@ -853,7 +835,7 @@ def update(mode="", input_file="", flags={}):
 
             timeremain = time.mktime(time.localtime())-started
             if timeremain < flags["l"]:
-                print("Next update: "+time.strftime("%d/%m/%Y %H:%M", time.localtime(time.mktime(time.localtime())+flags["l"])))
+                print("Next update: "+time.strftime("%d/%m/%Y %H:%M", time.localtime(time.mktime(time.localtime()) + flags["l"])))
 
             while time.mktime(time.localtime())-started < flags["l"]:
                 time.sleep(1)
