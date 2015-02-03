@@ -55,6 +55,7 @@ def run(args):
         print("  new\t: Create a new grader project")
         print("  edit\t: Change grader project settings")
         print("Flags:")
+        print("  -score <file name>\t: Read grader's score from file")
         print("  -autoretry\t: Repeat update on uncritical errors")
         print("  -infinite\t: Repeat update until interrupted")
         print("  -forever\t: Alias of -infinite")
@@ -82,7 +83,8 @@ def run(args):
         "pause_merger": False,
         "pause_normalizer": False,
         "pause_update": False,
-        "first": True
+        "first": True,
+        "score": None
     }
     for aid in range(2, len(args)):
         if args[aid] == "-autoretry":
@@ -95,6 +97,8 @@ def run(args):
         elif args[aid] == "-l" or args[aid] == "-delay":
             if int(args[aid+1]) > 0:
                 flags["l"] = int(args[aid+1])
+        elif args[aid] == "-score":
+            flags["score"] = args[aid+1]
         elif args[aid] == "-force":
             flags["force"] = True
         elif args[aid] == "-store":
@@ -646,53 +650,60 @@ def update(mode="", input_file="", flags={}):
         # ======
         # Grader
         # ======
-        if not flags["silent"]:
-            print("Gathering result from grader...")
-            print("Connecting to grader...")
         br = mechanize.Browser()
         br.set_handle_robots(False)
-        try:
-            br.open(GRADER_BASE)
-        except Exception as msg:
-            print("Grader Error! "+str(msg))
-            if flags["autoretry"]:
-                retry = 1
-            continue
-        if len(list(br.forms())) < 1:
-            print("No login form in grader... Please check the grader...")
-            if flags["autoretry"]:
-                retry = 1
-            continue
-        br.form = list(br.forms())[0]
-        br.form["login"] = file_info["grader_user"]
-        br.form["password"] = file_info["grader_password"]
-        if not flags["silent"]:
-            print("Logging into grader...")
-        br.submit()
-        if flags["pause_grader"]:
-            raw_input("[Grader] Press 'enter' or 'return' to continue...")
-        if not flags["silent"]:
-            print("Browsing grader results...")
-        found = False
-        for link in br.links():
-            if link.url == "/user_admin/user_stat":
-                found = True
-                break
-        if not found:
-            print("Grader has no link to results page... Please check the grader...")
-            if flags["autoretry"]:
-                retry = 1
-            continue
-        try:
-            br.open(GRADER_BASE + "/user_admin/user_stat")
-        except Exception as msg:
-            print("Grader Results Error! "+str(msg))
-            if flags["autoretry"]:
-                retry = 1
-            continue
-        if not flags["silent"]:
-            print("Collecting grader results...")
-        result_html = BeautifulSoup(br.response().read())
+        if flags["score"] is not None:
+            if not flags["silent"]:
+                print("Gathering result from file...")
+            result_file = open(flags["score"], "r")
+            result_html = BeautifulSoup(result_file.read())
+            result_file.close()
+        else:
+            if not flags["silent"]:
+                print("Gathering result from grader...")
+                print("Connecting to grader...")
+            try:
+                br.open(GRADER_BASE)
+            except Exception as msg:
+                print("Grader Error! "+str(msg))
+                if flags["autoretry"]:
+                    retry = 1
+                continue
+            if len(list(br.forms())) < 1:
+                print("No login form in grader... Please check the grader...")
+                if flags["autoretry"]:
+                    retry = 1
+                continue
+            br.form = list(br.forms())[0]
+            br.form["login"] = file_info["grader_user"]
+            br.form["password"] = file_info["grader_password"]
+            if not flags["silent"]:
+                print("Logging into grader...")
+            br.submit()
+            if flags["pause_grader"]:
+                raw_input("[Grader] Press 'enter' or 'return' to continue...")
+            if not flags["silent"]:
+                print("Browsing grader results...")
+            found = False
+            for link in br.links():
+                if link.url == "/user_admin/user_stat":
+                    found = True
+                    break
+            if not found:
+                print("Grader has no link to results page... Please check the grader...")
+                if flags["autoretry"]:
+                    retry = 1
+                continue
+            try:
+                br.open(GRADER_BASE + "/user_admin/user_stat")
+            except Exception as msg:
+                print("Grader Results Error! "+str(msg))
+                if flags["autoretry"]:
+                    retry = 1
+                continue
+            if not flags["silent"]:
+                print("Collecting grader results...")
+            result_html = BeautifulSoup(br.response().read())
         result_table_html = result_html.find("table", class_="info")
         if result_table_html is None:
             print("Grader results page has no table... Please check the grader...")
