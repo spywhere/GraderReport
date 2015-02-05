@@ -31,7 +31,7 @@ from .exceptions import (AuthenticationError, SpreadsheetNotFound,
 AUTH_SERVER = 'https://www.google.com'
 SPREADSHEETS_SERVER = 'spreadsheets.google.com'
 
-_url_key_re = re.compile(r'key=([^&#]+)')
+_url_key_re = re.compile(r'key=([^&#]+)|/d/(.*)/')
 
 
 class Client(object):
@@ -147,7 +147,7 @@ class Client(object):
             alter_link = finditem(lambda x: x.get('rel') == 'alternate',
                                   elem.findall(_ns('link')))
             m = _url_key_re.search(alter_link.get('href'))
-            if m and m.group(1) == key:
+            if m and (m.group(1) == key or m.group(2) == key):
                 return Spreadsheet(self, elem)
         else:
             raise SpreadsheetNotFound
@@ -168,7 +168,7 @@ class Client(object):
         """
         m = _url_key_re.search(url)
         if m:
-            return self.open_by_key(m.group(1))
+            return self.open_by_key(m.group(1) or m.group(2))
         else:
             raise NoValidUrlKeyFound
 

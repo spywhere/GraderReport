@@ -149,6 +149,26 @@ def update(mode="", input_file="", flags={}):
             graderp = getpass.getpass("Grader password: ")
             if graderp == "":
                 return
+            print("Connecting to grader...")
+            br = mechanize.Browser()
+            br.set_handle_robots(False)
+            try:
+                br.open(GRADER_BASE)
+            except Exception as msg:
+                print("Grader Error! "+str(msg))
+                return
+            if len(list(br.forms())) < 1:
+                print("No login form in grader... Please check the grader...")
+                return
+            br.form = list(br.forms())[0]
+            br.form["login"] = graderu
+            br.form["password"] = graderp
+            print("Logging into grader...")
+            if re.search("Wrong password", br.submit().read()) is not None:
+                print("Invalid user or password.")
+                continue
+            break
+        while True:
             print("==== GMail ====")
             gmail = raw_input("GMail: ")
             if gmail == "":
@@ -341,7 +361,6 @@ def update(mode="", input_file="", flags={}):
             if confirm.lower() == "y":
                 file_info["gmail_password"] = getpass.getpass("New password: ")
                 edit = True
-
             editspreadsheet = False
             confirm = raw_input("Change spreadsheet? This will also change worksheet (y/n): ")
             if confirm.lower() == "y":
@@ -679,7 +698,9 @@ def update(mode="", input_file="", flags={}):
             br.form["password"] = file_info["grader_password"]
             if not flags["silent"]:
                 print("Logging into grader...")
-            br.submit()
+            if re.search("Wrong password", br.submit().read()) is not None:
+                print("Invalid user or password.")
+                return
             if flags["pause_grader"]:
                 raw_input("[Grader] Press 'enter' or 'return' to continue...")
             if not flags["silent"]:

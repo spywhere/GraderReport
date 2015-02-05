@@ -108,7 +108,6 @@ class LogThread(threading.Thread):
                 range_to = self.logsheet.get_addr_int(selectedRow, 6)
                 cells = self.logsheet.range(range_from+":"+range_to)
 
-                infoText = ""
                 commandResponse = ""
                 for cell in cells:
                     if cell.col == 5:
@@ -149,7 +148,6 @@ class LogThread(threading.Thread):
         self.running = True
         while self.running:
             try:
-                found = False
                 selectedRow = 1
                 for value in self.logsheet.col_values(1):
                     if selectedRow == 1:
@@ -212,6 +210,7 @@ class LogThread(threading.Thread):
 def clear():
     os.system("cls" if os.name == "nt" else "clear")
 
+
 def parsable(string):
     try:
         int(string)
@@ -227,6 +226,7 @@ def trim(st):
     elif st.endswith(" ") or st.endswith("\n") or st.endswith("\t"):
         return trim(st[:-1])
     return st
+
 
 def run():
     parser = argparse.ArgumentParser(description="Cafe Grader Exam System.")
@@ -245,14 +245,15 @@ def run():
         if not ret["return"]:
             break
 
+
 def run_command(command, browser, problems, acceptPattern, background=False):
     if not background:
         clear()
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("-p", "--problem", dest="submit_problem", nargs="?", type=int)
-    parser.add_argument("-f", "--file", dest="submit_file", nargs="?" , type=str)
+    parser.add_argument("-f", "--file", dest="submit_file", nargs="?", type=str)
     parser.add_argument("arg1", nargs="?", type=str)
-    parser.add_argument("arg2", nargs="?" , type=str)
+    parser.add_argument("arg2", nargs="?", type=str)
     cmdoptions = parser.parse_args(command.split())
 
     if cmdoptions.submit_problem is None:
@@ -342,7 +343,7 @@ def run_command(command, browser, problems, acceptPattern, background=False):
                 print("No compiler message yet")
         else:
             try:
-                response = browser.open(GRADER_BASE+compiler_msg_link)
+                browser.open(GRADER_BASE+compiler_msg_link)
             except Exception as msg:
                 if background:
                     return "Grader Error! "+str(msg)
@@ -353,11 +354,9 @@ def run_command(command, browser, problems, acceptPattern, background=False):
             if not background:
                 clear()
             compiler_page = BeautifulSoup(browser.response().read())
-            titlelength = 0
             bgmsg = ""
             for child in compiler_page.find("body").children:
                 if child.name == "h2":
-                    titlelength = len(child.string)
                     if background:
                         bgmsg += "==== %s ====" % (trim(child.string))
                     else:
@@ -389,13 +388,13 @@ def run_command(command, browser, problems, acceptPattern, background=False):
 
     browser.form = list(browser.forms())[0]
     browser.form["submission[problem_id]"] = [str(problems[cmdoptions.submit_problem-1]["id"])]
-    f = open(cmdoptions.submit_file)
     browser.form.add_file(open(cmdoptions.submit_file), 'text/plain', cmdoptions.submit_file)
     browser.submit()
     if background:
         return submitmsg
     else:
         return True
+
 
 def printProblems(problems, username, background=False):
     print("==== [%s] %s ====" % (username, time.strftime("%d/%m/%Y %H:%M:%S", time.localtime())))
@@ -410,6 +409,7 @@ def printProblems(problems, username, background=False):
     if background:
         sys.stdout.write("> ")
         sys.stdout.flush()
+
 
 def subrun(options):
     logThread = None
@@ -543,7 +543,6 @@ def subrun(options):
                 elif not userListing and cell == "User List":
                     userListing = True
                 currentCell += 1
-        grader_result = ""
         while True:
             if loginMode == "hw":
                 userPassword = getpass.getpass("Password: ")
@@ -577,7 +576,7 @@ def subrun(options):
         clear()
         while True:
             try:
-                response = br.open(GRADER_BASE+"/main/list")
+                br.open(GRADER_BASE+"/main/list")
             except Exception as msg:
                 print("Grader Error! "+str(msg))
                 traceback.print_exc()
