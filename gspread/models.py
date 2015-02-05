@@ -61,7 +61,7 @@ class Spreadsheet(object):
         _url_key_re = re.compile(r'key=([^&#]+)|/d/(.*)/')
         m = _url_key_re.search(alter_link.get('href'))
         if m:
-            self.sheet_key = m.group(1)
+            self.sheet_key = m.group(1) or m.group(2)
         else:
             self.sheet_key = ""
 
