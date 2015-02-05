@@ -13,7 +13,7 @@ UTILS_BASE = "http://digitalparticle.com/graderta"
 
 
 def parse_file(data):
-    datalist = data.split("\n")
+    datalist = data.replace("\r\n", "\n").split("\n")
     return {
         "grader_user": datalist[0],
         "grader_password": datalist[1],
