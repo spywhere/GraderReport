@@ -2,3 +2,4 @@ moss.pl
 skills_*
 Result_*
 Backup
+*.pyc

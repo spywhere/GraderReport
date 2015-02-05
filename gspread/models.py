@@ -58,7 +58,7 @@ class Spreadsheet(object):
 
         alter_link = finditem(lambda x: x.get('rel') == 'alternate',
                                   feed_entry.findall(_ns('link')))
-        _url_key_re = re.compile(r'key=([^&#]+)')
+        _url_key_re = re.compile(r'key=([^&#]+)|/d/(.*)/')
         m = _url_key_re.search(alter_link.get('href'))
         if m:
             self.sheet_key = m.group(1)
