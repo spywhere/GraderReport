@@ -198,7 +198,7 @@ def update(mode="", input_file="", flags={}):
                 continue
             for sheet in filteredsheets:
                 print("  Name: "+sheet.title)
-                print("  Key: "+sheet.sheet_key)
+                print("  Key: "+sheet.id)
                 print("--------")
             back = False
             while True:
@@ -213,7 +213,7 @@ def update(mode="", input_file="", flags={}):
                 if sheetkey == "":
                     return
                 for sheet in filteredsheets:
-                    if sheet.sheet_key == sheetkey:
+                    if sheet.id == sheetkey:
                         currentsheet = sheet
                         break
                 if currentsheet is None:
@@ -273,7 +273,7 @@ def update(mode="", input_file="", flags={}):
             print("GMail: "+gmail)
             print("GMail Password: "+("*"*len(pwd)))
             print("Spreadsheet: "+currentsheet.title)
-            print("Spreadsheet Key: "+currentsheet.sheet_key)
+            print("Spreadsheet Key: "+currentsheet.id)
             print("Worksheet: " + workingsheet.title)
             print("==== Merger ====")
             print("No Columns: " + no_col)
@@ -296,7 +296,7 @@ def update(mode="", input_file="", flags={}):
                 data.append(graderp)
                 data.append(gmail)
                 data.append(pwd)
-                data.append(currentsheet.sheet_key)
+                data.append(currentsheet.id)
                 data.append(workingsheet.title)
                 data.append(no_col)
                 data.append(no_row)
@@ -383,7 +383,7 @@ def update(mode="", input_file="", flags={}):
                             continue
                         for sheet in filteredsheets:
                             print("  Name: "+sheet.title)
-                            print("  Key: "+sheet.sheet_key)
+                            print("  Key: "+sheet.id)
                             print("--------")
                         back = False
                         stop = False
@@ -400,7 +400,7 @@ def update(mode="", input_file="", flags={}):
                                 stop = True
                                 break
                             for sheet in filteredsheets:
-                                if sheet.sheet_key == sheetkey:
+                                if sheet.id == sheetkey:
                                     currentsheet = sheet
                                     break
                             if currentsheet is None:
@@ -419,7 +419,7 @@ def update(mode="", input_file="", flags={}):
                             edit = True
                             break
                     if edit:
-                        file_info["spreadsheet"] = currentsheet.sheet_key
+                        file_info["spreadsheet"] = currentsheet.id
                         editspreadsheet = True
                 except gspread.AuthenticationError:
                     print("Invalid email or password.")
