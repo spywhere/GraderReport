@@ -6,8 +6,10 @@ import time
 import gspread
 import mechanize
 from bs4 import BeautifulSoup
+from oauth2client.client import OAuth2WebServerFlow
 
 
+OAUTH_SCOPES = ["https://spreadsheets.google.com/feeds"]
 GRADER_BASE = "http://grader.eng.src.ku.ac.th"
 UTILS_BASE = "http://digitalparticle.com/graderta"
 
@@ -17,8 +19,8 @@ def parse_file(data):
     return {
         "grader_user": datalist[0],
         "grader_password": datalist[1],
-        "gmail": datalist[2],
-        "gmail_password": datalist[3],
+        "client_id": datalist[2],
+        "client_secret": datalist[3],
         "spreadsheet": datalist[4],
         "worksheet": datalist[5],
         "merger_no_columns": datalist[6],
@@ -84,7 +86,8 @@ def run(args):
         "pause_normalizer": False,
         "pause_update": False,
         "first": True,
-        "score": None
+        "score": None,
+        "credentials": None
     }
     for aid in range(2, len(args)):
         if args[aid] == "-autoretry":
@@ -170,15 +173,26 @@ def update(mode="", input_file="", flags={}):
             break
         while True:
             print("==== GMail ====")
-            gmail = raw_input("GMail: ")
-            if gmail == "":
+            client_id = raw_input("Client ID: ")
+            if client_id == "":
                 return
-            pwd = getpass.getpass("GMail password: ")
-            if pwd == "":
+            client_secret = getpass.getpass("Client Secret: ")
+            if client_secret == "":
                 return
+            print("Getting user credential...")
+            flow = OAuth2WebServerFlow(client_id, client_secret, " ".join(OAUTH_SCOPES))
+            flow_info = flow.step1_get_device_and_user_codes()
+            print("Enter the following code at {0}: {1}".format(flow_info.verification_url,
+                                                                flow_info.user_code))
+            raw_input("Then press Enter/Return.")
+            try:
+                credentials = flow.step2_exchange(device_flow_info=flow_info)
+            except:
+                print("Failed to get user credentials.")
+                continue
             print("Logging in...")
             try:
-                client = gspread.login(gmail, pwd)
+                client = gspread.authorize(credentials)
                 break
             except gspread.AuthenticationError:
                 print("Invalid email or password.")
@@ -270,8 +284,8 @@ def update(mode="", input_file="", flags={}):
             print("Grader User: "+graderu)
             print("Grader Password: "+("*"*len(graderp)))
             print("==== Google Spreadsheet ====")
-            print("GMail: "+gmail)
-            print("GMail Password: "+("*"*len(pwd)))
+            print("Client ID: "+client_id)
+            print("Client Secret: "+("*"*len(client_secret)))
             print("Spreadsheet: "+currentsheet.title)
             print("Spreadsheet Key: "+currentsheet.id)
             print("Worksheet: " + workingsheet.title)
@@ -294,8 +308,8 @@ def update(mode="", input_file="", flags={}):
                 data = []
                 data.append(graderu)
                 data.append(graderp)
-                data.append(gmail)
-                data.append(pwd)
+                data.append(client_id)
+                data.append(client_secret)
                 data.append(currentsheet.id)
                 data.append(workingsheet.title)
                 data.append(no_col)
@@ -326,8 +340,8 @@ def update(mode="", input_file="", flags={}):
         print("Grader User: "+file_info["grader_user"])
         print("Grader Password: "+("*"*len(file_info["grader_password"])))
         print("==== Google Spreadsheet ====")
-        print("GMail: "+file_info["gmail"])
-        print("GMail Password: "+("*"*len(file_info["gmail_password"])))
+        print("Client ID: "+file_info["client_id"])
+        print("Client Secret: "+("*"*len(file_info["client_secret"])))
         print("Spreadsheet Key: "+file_info["spreadsheet"])
         print("Worksheet: " + file_info["worksheet"])
         print("==== Merger ====")
@@ -353,21 +367,39 @@ def update(mode="", input_file="", flags={}):
                 file_info["grader_password"] = getpass.getpass("New grader password: ")
                 edit = True
             print("==== GMail ====")
-            confirm = raw_input("Change email? (y/n): ")
+            confirm = raw_input("Change client ID? (y/n): ")
             if confirm.lower() == "y":
-                file_info["gmail"] = raw_input("New email: ")
+                file_info["client_id"] = raw_input("New client ID: ")
                 edit = True
-            confirm = raw_input("Change password? (y/n): ")
+            confirm = raw_input("Change client secret? (y/n): ")
             if confirm.lower() == "y":
-                file_info["gmail_password"] = getpass.getpass("New password: ")
+                file_info["client_secret"] = getpass.getpass("New client secret: ")
                 edit = True
             editspreadsheet = False
             confirm = raw_input("Change spreadsheet? This will also change worksheet (y/n): ")
             if confirm.lower() == "y":
+                client_id = raw_input("Client ID: ")
+                if client_id == "":
+                    return
+                client_secret = getpass.getpass("Client Secret: ")
+                if client_secret == "":
+                    return
+                print("Getting user credential...")
+                flow = OAuth2WebServerFlow(file_info["client_id"], file_info["client_secret"], " ".join(OAUTH_SCOPES))
+                flow_info = flow.step1_get_device_and_user_codes()
+                print("Enter the following code at {0}: {1}".format(flow_info.verification_url,
+                                                                    flow_info.user_code))
+                raw_input("Then press Enter/Return.")
+                try:
+                    credentials = flow.step2_exchange(device_flow_info=flow_info)
+                except:
+                    print("Failed to get user credentials.")
+                    return
+
                 client = None
                 print("Logging in...")
                 try:
-                    client = gspread.login(file_info["gmail"], file_info["gmail_password"])
+                    client = gspread.authorize(credentials)
                     while True:
                         sheetkeyword = raw_input("Spreadsheets filter: ")
                         if sheetkeyword == "":
@@ -422,16 +454,29 @@ def update(mode="", input_file="", flags={}):
                         file_info["spreadsheet"] = currentsheet.id
                         editspreadsheet = True
                 except gspread.AuthenticationError:
-                    print("Invalid email or password.")
+                    print("Invalid credentials.")
 
             if not editspreadsheet:
                 confirm = raw_input("Change worksheet? (y/n): ")
             if editspreadsheet or confirm.lower() == "y":
                 client = None
+
+                print("Getting user credential...")
+                flow = OAuth2WebServerFlow(file_info["client_id"], file_info["client_secret"], " ".join(OAUTH_SCOPES))
+                flow_info = flow.step1_get_device_and_user_codes()
+                print("Enter the following code at {0}: {1}".format(flow_info.verification_url,
+                                                                    flow_info.user_code))
+                raw_input("Then press Enter/Return.")
+                try:
+                    credentials = flow.step2_exchange(device_flow_info=flow_info)
+                except:
+                    print("Failed to get user credentials.")
+                    break
+
                 if not editspreadsheet:
                     print("Logging in...")
                 try:
-                    client = gspread.login(file_info["gmail"], file_info["gmail_password"])
+                    client = gspread.authorize(credentials)
                     print("Opening spreadsheets...")
                     try:
                         currentsheet = client.open_by_key(file_info["spreadsheet"])
@@ -469,7 +514,7 @@ def update(mode="", input_file="", flags={}):
                     if edit:
                         file_info["worksheet"] = workingsheet.title
                 except gspread.AuthenticationError:
-                    print("Invalid email or password.")
+                    print("Invalid credentials.")
             print("==== Merger ====")
             confirm = raw_input("Change no columns? (y/n): ")
             if confirm.lower() == "y":
@@ -513,8 +558,8 @@ def update(mode="", input_file="", flags={}):
                 print("Grader User: "+file_info["grader_user"])
                 print("Grader Password: "+("*"*len(file_info["grader_password"])))
                 print("==== Google Spreadsheet ====")
-                print("GMail: "+file_info["gmail"])
-                print("GMail Password: "+("*"*len(file_info["gmail_password"])))
+                print("Client ID: "+file_info["client_id"])
+                print("Client Secret: "+("*"*len(file_info["client_secret"])))
                 print("Spreadsheet Key: "+file_info["spreadsheet"])
                 print("Worksheet: " + file_info["worksheet"])
                 print("==== Merger ====")
@@ -535,8 +580,8 @@ def update(mode="", input_file="", flags={}):
                     data = []
                     data.append(file_info["grader_user"])
                     data.append(file_info["grader_password"])
-                    data.append(file_info["gmail"])
-                    data.append(file_info["gmail_password"])
+                    data.append(file_info["client_id"])
+                    data.append(file_info["client_secret"])
                     data.append(file_info["spreadsheet"])
                     data.append(file_info["worksheet"])
                     data.append(file_info["merger_no_columns"])
@@ -570,8 +615,8 @@ def update(mode="", input_file="", flags={}):
         print("Grader User: "+file_info["grader_user"])
         print("Grader Password: "+("*"*len(file_info["grader_password"])))
         print("==== Google Spreadsheet ====")
-        print("GMail: "+file_info["gmail"])
-        print("GMail Password: "+("*"*len(file_info["gmail_password"])))
+        print("Client ID: "+file_info["client_id"])
+        print("Client Secret: "+("*"*len(file_info["client_secret"])))
         print("Spreadsheet Key: "+file_info["spreadsheet"])
         print("Worksheet: " + file_info["worksheet"])
         print("==== Merger ====")
@@ -596,6 +641,21 @@ def update(mode="", input_file="", flags={}):
     # ======
     retry = 0
     started = time.mktime(time.localtime())
+
+    if not flags["credentials"]:
+        if not flags["silent"]:
+            print("Getting user credential...")
+        flow = OAuth2WebServerFlow(file_info["client_id"], file_info["client_secret"], " ".join(OAUTH_SCOPES))
+        flow_info = flow.step1_get_device_and_user_codes()
+        print("Enter the following code at {0}: {1}".format(flow_info.verification_url,
+                                                            flow_info.user_code))
+        raw_input("Then press Enter/Return.")
+        try:
+            flags["credentials"] = flow.step2_exchange(device_flow_info=flow_info)
+        except:
+            print("Failed to get user credentials.")
+            return
+
     while retry >= 0:
         if retry > 0:
             print("================")
@@ -608,12 +668,13 @@ def update(mode="", input_file="", flags={}):
         # Google Spreadsheet
         # ======
         client = None
+
         if not flags["silent"]:
-            print("Logging into GMail...")
+            print("Logging in...")
         try:
-            client = gspread.login(file_info["gmail"], file_info["gmail_password"])
+            client = gspread.authorize(flags["credentials"])
         except gspread.AuthenticationError:
-            print("Invalid email or password.")
+            print("Invalid credentials.")
             return
         if not flags["silent"]:
             print("Opening spreadsheets...")

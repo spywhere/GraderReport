@@ -9,6 +9,7 @@ Google Data API.
 
 """
 import re
+import warnings
 
 from xml.etree import ElementTree
 
@@ -59,6 +60,18 @@ class Client(object):
                 return line[5:]
         return None
 
+    def _deprecation_warning(self):
+        warnings.warn("""
+            ClientLogin is deprecated:
+            https://developers.google.com/identity/protocols/AuthForInstalledApps?csw=1
+
+            Authorization with email and password will stop working on April 20, 2015.
+
+            Please use oAuth2 authorization instead:
+            http://gspread.readthedocs.org/en/latest/oauth2.html
+
+        """, Warning)
+
     def _add_xml_header(self, data):
         return "<?xml version='1.0' encoding='UTF-8'?>%s" % data.decode()
 
@@ -87,6 +100,8 @@ class Client(object):
             self.session.add_header('Authorization', "Bearer " + self.auth.access_token)
 
         else:
+            self._deprecation_warning()
+
             data = {'Email': self.auth[0],
                     'Passwd': self.auth[1],
                     'accountType': 'HOSTED_OR_GOOGLE',
@@ -103,17 +118,11 @@ class Client(object):
                 self.session.add_header('Authorization', auth_header)
 
             except HTTPError as ex:
-                if ex.code == 403:
-                    content = ex.read().decode()
-                    if content.strip() == 'Error=BadAuthentication':
-                        raise AuthenticationError("Incorrect username or password")
-                    else:
-                        raise AuthenticationError(
-                            "Unable to authenticate. %s code" % ex.code)
-
+                if ex.message.strip() == '403: Error=BadAuthentication':
+                    raise AuthenticationError("Incorrect username or password")
                 else:
                     raise AuthenticationError(
-                        "Unable to authenticate. %s code" % ex.code)
+                        "Unable to authenticate. %s" % ex.message)
 
     def open(self, title):
         """Opens a spreadsheet, returning a :class:`~gspread.Spreadsheet` instance.
@@ -271,8 +280,7 @@ class Client(object):
             r = self.session.put(url, data, headers=headers)
         except HTTPError as ex:
             if ex.code == 403:
-                message = ex.read().decode()
-                raise UpdateCellError(message)
+                raise UpdateCellError(ex.message)
             else:
                 raise ex
 
@@ -285,8 +293,7 @@ class Client(object):
         try:
             r = self.session.post(url, data, headers=headers)
         except HTTPError as ex:
-            message = ex.read().decode()
-            raise RequestError(message)
+            raise RequestError(ex.message)
 
         return ElementTree.fromstring(r.read())
 
@@ -304,7 +311,7 @@ def login(email, password):
     """Login to Google API using `email` and `password`.
 
     This is a shortcut function which instantiates :class:`Client`
-    and performes login right away.
+    and performs login right away.
 
     :returns: :class:`Client` instance.
 
@@ -317,7 +324,7 @@ def authorize(credentials):
     """Login to Google API using OAuth2 credentials.
 
     This is a shortcut function which instantiates :class:`Client`
-    and performes login right away.
+    and performs login right away.
 
     :returns: :class:`Client` instance.
 
@@ -325,4 +332,3 @@ def authorize(credentials):
     client = Client(auth=credentials)
     client.login()
     return client
-
